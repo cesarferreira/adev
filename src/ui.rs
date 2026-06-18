@@ -72,3 +72,73 @@ pub fn print_json(value: &serde_json::Value) {
         serde_json::to_string_pretty(value).unwrap_or_default()
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use androkit::model::{AndroidProject, Variant};
+
+    /// A project with a single `devDebug` variant and a default + application id.
+    fn project() -> AndroidProject {
+        AndroidProject {
+            root: "/tmp/app".to_string(),
+            modules: Vec::new(),
+            app_module: Some(":app".to_string()),
+            variants: vec![Variant {
+                name: "devDebug".to_string(),
+                build_type: "debug".to_string(),
+                flavors: vec!["dev".to_string()],
+            }],
+            default_variant: Some("devDebug".to_string()),
+            application_id: Some("com.example.app".to_string()),
+            launch_activity: Some("com.example.app/.MainActivity".to_string()),
+        }
+    }
+
+    #[test]
+    fn resolve_variant_prefers_explicit_over_default() {
+        let p = project();
+        assert_eq!(
+            resolve_variant(&p, Some("prodRelease")).unwrap(),
+            "prodRelease"
+        );
+    }
+
+    #[test]
+    fn resolve_variant_falls_back_to_default() {
+        let p = project();
+        assert_eq!(resolve_variant(&p, None).unwrap(), "devDebug");
+    }
+
+    #[test]
+    fn resolve_variant_errors_without_default_or_explicit() {
+        let mut p = project();
+        p.default_variant = None;
+        p.variants.clear();
+        assert!(resolve_variant(&p, None).is_err());
+    }
+
+    #[test]
+    fn resolve_variant_uses_explicit_even_without_default() {
+        // An explicit choice should work even when discovery found no default.
+        let mut p = project();
+        p.default_variant = None;
+        assert_eq!(
+            resolve_variant(&p, Some("stagingDebug")).unwrap(),
+            "stagingDebug"
+        );
+    }
+
+    #[test]
+    fn require_application_id_returns_some() {
+        let p = project();
+        assert_eq!(require_application_id(&p).unwrap(), "com.example.app");
+    }
+
+    #[test]
+    fn require_application_id_errors_when_missing() {
+        let mut p = project();
+        p.application_id = None;
+        assert!(require_application_id(&p).is_err());
+    }
+}

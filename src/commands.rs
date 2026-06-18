@@ -349,18 +349,29 @@ fn device_and_app(ctx: &Ctx) -> Result<(Adb, String, String, AndroidProject)> {
 /// output even though it's launched as a child process.
 fn run_gradle(ctx: &Ctx, project: &AndroidProject, task: &str, extra: &[&str]) -> Result<()> {
     let gradle = ctx.gradle(project)?;
-    let mut args: Vec<&str> = Vec::new();
-    if ctx.json {
-        args.push("-q");
-    } else if std::io::stdout().is_terminal() {
-        args.push("--console=rich");
-    }
-    args.extend_from_slice(extra);
-    let status = gradle.run_task(task, &args)?;
+    let args = gradle_args(ctx.json, std::io::stdout().is_terminal(), extra);
+    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let status = gradle.run_task(task, &arg_refs)?;
     if !status.success() {
         bail!("Gradle task `{task}` failed");
     }
     Ok(())
+}
+
+/// Build the extra Gradle CLI args, separated from process spawning so it can be
+/// unit-tested. In JSON mode we pass `-q` so Gradle's chatter doesn't pollute
+/// stdout before the result line. In a terminal (non-JSON) we force
+/// `--console=rich` so Gradle still emits its usual colored output even though
+/// it's launched as a child process. Caller-supplied `extra` is always appended.
+fn gradle_args(json: bool, is_terminal: bool, extra: &[&str]) -> Vec<String> {
+    let mut args: Vec<String> = Vec::new();
+    if json {
+        args.push("-q".to_string());
+    } else if is_terminal {
+        args.push("--console=rich".to_string());
+    }
+    args.extend(extra.iter().map(|s| s.to_string()));
+    args
 }
 
 /// Recursively delete every directory named `build`, skipping hidden dirs and
@@ -381,4 +392,76 @@ fn delete_build_dirs(dir: &Path, removed: &mut Vec<String>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ctx(module: Option<&str>) -> Ctx {
+        Ctx {
+            json: false,
+            device: None,
+            variant: None,
+            module: module.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn scoped_without_module_is_identity() {
+        assert_eq!(ctx(None).scoped("installDevDebug"), "installDevDebug");
+    }
+
+    #[test]
+    fn scoped_with_module_prefixes_task() {
+        assert_eq!(
+            ctx(Some(":app")).scoped("installDevDebug"),
+            ":app:installDevDebug"
+        );
+    }
+
+    #[test]
+    fn scoped_trims_trailing_colon_on_module() {
+        // `--module :app:` should not produce a double colon before the task.
+        assert_eq!(
+            ctx(Some(":app:")).scoped("installDevDebug"),
+            ":app:installDevDebug"
+        );
+    }
+
+    #[test]
+    fn gradle_args_json_mode_uses_quiet_and_no_console() {
+        let args = gradle_args(true, true, &[]);
+        assert_eq!(args, vec!["-q"]);
+        // Even when stdout is a terminal, JSON mode must not request rich console.
+        assert!(!args.iter().any(|a| a == "--console=rich"));
+    }
+
+    #[test]
+    fn gradle_args_terminal_non_json_uses_rich_console() {
+        assert_eq!(gradle_args(false, true, &[]), vec!["--console=rich"]);
+    }
+
+    #[test]
+    fn gradle_args_non_terminal_non_json_is_empty() {
+        assert!(gradle_args(false, false, &[]).is_empty());
+    }
+
+    #[test]
+    fn gradle_args_appends_extra_after_console_flag() {
+        let extra = ["--rerun-tasks", "--no-build-cache"];
+        assert_eq!(
+            gradle_args(false, true, &extra),
+            vec!["--console=rich", "--rerun-tasks", "--no-build-cache"]
+        );
+    }
+
+    #[test]
+    fn gradle_args_json_mode_still_appends_extra() {
+        let extra = ["--rerun-tasks", "--no-build-cache"];
+        assert_eq!(
+            gradle_args(true, false, &extra),
+            vec!["-q", "--rerun-tasks", "--no-build-cache"]
+        );
+    }
 }

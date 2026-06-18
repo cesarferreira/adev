@@ -92,3 +92,121 @@ pub enum Command {
         output: Option<PathBuf>,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    /// Catches malformed clap definitions (conflicting flags, bad arg specs).
+    #[test]
+    fn verify_cli() {
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn no_subcommand_is_allowed() {
+        // Bare `adev` falls through to the interactive picker, so parsing must succeed.
+        let cli = Cli::try_parse_from(["adev"]).unwrap();
+        assert!(cli.command.is_none());
+        assert!(!cli.json);
+    }
+
+    #[test]
+    fn global_flags_parse_before_subcommand() {
+        let cli = Cli::try_parse_from([
+            "adev",
+            "--json",
+            "--device",
+            "emulator-5554",
+            "--variant",
+            "devDebug",
+            "--module",
+            ":app",
+            "info",
+        ])
+        .unwrap();
+        assert!(cli.json);
+        assert_eq!(cli.device.as_deref(), Some("emulator-5554"));
+        assert_eq!(cli.variant.as_deref(), Some("devDebug"));
+        assert_eq!(cli.module.as_deref(), Some(":app"));
+        assert!(matches!(cli.command, Some(Command::Info)));
+    }
+
+    #[test]
+    fn global_flags_parse_after_subcommand() {
+        // `global = true` flags must also be accepted positioned after the subcommand.
+        let cli = Cli::try_parse_from(["adev", "info", "--json"]).unwrap();
+        assert!(cli.json);
+        assert!(matches!(cli.command, Some(Command::Info)));
+    }
+
+    #[test]
+    fn install_takes_positional_variant() {
+        let cli = Cli::try_parse_from(["adev", "install", "prodRelease"]).unwrap();
+        match cli.command {
+            Some(Command::Install { variant }) => {
+                assert_eq!(variant.as_deref(), Some("prodRelease"))
+            }
+            other => panic!("expected Install, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn install_variant_is_optional() {
+        let cli = Cli::try_parse_from(["adev", "install"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Install { variant: None })
+        ));
+    }
+
+    #[test]
+    fn test_fresh_flag() {
+        let fresh = Cli::try_parse_from(["adev", "test", "--fresh"]).unwrap();
+        assert!(matches!(fresh.command, Some(Command::Test { fresh: true })));
+
+        let plain = Cli::try_parse_from(["adev", "test"]).unwrap();
+        assert!(matches!(
+            plain.command,
+            Some(Command::Test { fresh: false })
+        ));
+    }
+
+    #[test]
+    fn deep_clean_yes_short_flag() {
+        let cli = Cli::try_parse_from(["adev", "deep-clean", "-y"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::DeepClean { yes: true })
+        ));
+
+        let long = Cli::try_parse_from(["adev", "deep-clean", "--yes"]).unwrap();
+        assert!(matches!(
+            long.command,
+            Some(Command::DeepClean { yes: true })
+        ));
+
+        let off = Cli::try_parse_from(["adev", "deep-clean"]).unwrap();
+        assert!(matches!(
+            off.command,
+            Some(Command::DeepClean { yes: false })
+        ));
+    }
+
+    #[test]
+    fn screenshot_output_flag() {
+        let cli = Cli::try_parse_from(["adev", "screenshot", "--output", "foo.png"]).unwrap();
+        match cli.command {
+            Some(Command::Screenshot { output }) => {
+                assert_eq!(output, Some(PathBuf::from("foo.png")));
+            }
+            other => panic!("expected Screenshot, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unknown_subcommand_is_rejected() {
+        assert!(Cli::try_parse_from(["adev", "frobnicate"]).is_err());
+    }
+}
