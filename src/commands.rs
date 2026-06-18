@@ -345,11 +345,15 @@ fn device_and_app(ctx: &Ctx) -> Result<(Adb, String, String, AndroidProject)> {
 
 /// Run a Gradle task, mapping a non-zero exit into an error. In JSON mode we
 /// pass `-q` so Gradle's chatter doesn't pollute stdout before the result line.
+/// In a terminal we force `--console=rich` so Gradle emits its usual colored
+/// output even though it's launched as a child process.
 fn run_gradle(ctx: &Ctx, project: &AndroidProject, task: &str, extra: &[&str]) -> Result<()> {
     let gradle = ctx.gradle(project)?;
     let mut args: Vec<&str> = Vec::new();
     if ctx.json {
         args.push("-q");
+    } else if std::io::stdout().is_terminal() {
+        args.push("--console=rich");
     }
     args.extend_from_slice(extra);
     let status = gradle.run_task(task, &args)?;
