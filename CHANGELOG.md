@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.2.0] - 2026-06-18
+
+### Added
+- Add project-aware `build`, `run`, and `connected-test` commands.
+- Add global `--dry-run` planning output for Gradle, ADB, file-system, and workflow actions.
+- Add `doctor`, `health`, richer `devices --verbose --health`, and discovery cache controls.
+- Add deep-link opening, uninstall, permission grant/revoke, and upgraded logcat filtering.
+- Expand CLI parsing and command-helper test coverage for the new command surface.
+
 ## [0.1.0] - 2026-06-18
 
 ### Added
@@ -15,5 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built on the `androkit` library; `--json` / `--device` / `--variant` / `--module` flags and a `SKILL.md` for AI agents.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/cesarferreira/adev/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cesarferreira/adev/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cesarferreira/adev/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cesarferreira/adev/releases/tag/v0.1.0

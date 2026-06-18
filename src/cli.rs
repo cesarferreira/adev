@@ -2,7 +2,7 @@
 //! global `--json` / `--device`, plus `--variant` / `--module` for the
 //! project-aware commands.
 
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -28,6 +28,10 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub module: Option<String>,
 
+    /// Print the resolved Gradle/ADB actions without executing them.
+    #[arg(long, global = true)]
+    pub dry_run: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }
@@ -35,7 +39,11 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Show discovered project structure: modules, variants, applicationId, launch activity, tasks.
-    Info,
+    Info {
+        /// Bypass the discovery cache before showing project information.
+        #[arg(long)]
+        refresh: bool,
+    },
 
     /// Install the app onto a device (`./gradlew install<Variant>`).
     Install {
@@ -43,8 +51,36 @@ pub enum Command {
         variant: Option<String>,
     },
 
+    /// Build the APK (`./gradlew assemble<Variant>`).
+    Build {
+        /// Variant to build (overrides --variant and the default).
+        variant: Option<String>,
+    },
+
     /// Launch the discovered launcher activity.
     Launch,
+
+    /// Install, optionally reset/restart, launch, and optionally attach logs.
+    Run {
+        /// Variant to install before launching (overrides --variant and the default).
+        variant: Option<String>,
+
+        /// Re-run Gradle work from scratch before installing.
+        #[arg(long)]
+        fresh: bool,
+
+        /// Clear app data after install and before launch.
+        #[arg(long)]
+        clear_data: bool,
+
+        /// Force-stop the app before launching it.
+        #[arg(long)]
+        restart: bool,
+
+        /// Attach filtered logcat after launch.
+        #[arg(long)]
+        logs: bool,
+    },
 
     /// Run unit tests (`./gradlew test<Variant>UnitTest`).
     Test {
@@ -53,8 +89,31 @@ pub enum Command {
         fresh: bool,
     },
 
+    /// Run connected/instrumentation tests (`./gradlew connected<Variant>AndroidTest`).
+    ConnectedTest {
+        /// Re-run from scratch: `--rerun-tasks --no-build-cache`.
+        #[arg(long)]
+        fresh: bool,
+    },
+
     /// Stream logcat filtered to this app.
-    Logs,
+    Logs {
+        /// Clear logcat before streaming.
+        #[arg(long)]
+        clear: bool,
+
+        /// Add a logcat tag filter. May be repeated.
+        #[arg(long, action = ArgAction::Append)]
+        tag: Vec<String>,
+
+        /// Minimum log level for tag filters, e.g. V, D, I, W, E, F.
+        #[arg(long)]
+        level: Option<String>,
+
+        /// Show common crash-related logs.
+        #[arg(long)]
+        crashes: bool,
+    },
 
     /// `./gradlew clean`.
     Clean,
@@ -72,11 +131,58 @@ pub enum Command {
     /// Clear the app's data and cache.
     ClearData,
 
+    /// Uninstall the app from the device.
+    Uninstall {
+        /// Skip the confirmation prompt.
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
+
+    /// Grant runtime permissions to the app.
+    Grant {
+        /// Android runtime permissions to grant.
+        #[arg(required = true)]
+        permissions: Vec<String>,
+    },
+
+    /// Revoke runtime permissions from the app.
+    Revoke {
+        /// Android runtime permissions to revoke.
+        #[arg(required = true)]
+        permissions: Vec<String>,
+    },
+
     /// Force-stop then relaunch the app.
     Restart,
 
     /// List connected devices.
-    Devices,
+    Devices {
+        /// Include device properties from getprop.
+        #[arg(long)]
+        verbose: bool,
+
+        /// Include battery/storage/RAM/network health for each device.
+        #[arg(long)]
+        health: bool,
+    },
+
+    /// Show health for the selected device.
+    Health,
+
+    /// Validate local Android project and device prerequisites.
+    Doctor,
+
+    /// Open a URL or deep link on the selected device.
+    Open {
+        /// URL or deep link to open.
+        url: String,
+    },
+
+    /// Manage adev's discovery cache.
+    Cache {
+        #[command(subcommand)]
+        command: CacheCommand,
+    },
 
     /// Capture a screenshot.
     Screenshot {
@@ -91,6 +197,12 @@ pub enum Command {
         #[arg(long)]
         output: Option<PathBuf>,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CacheCommand {
+    /// Clear cached Android project discovery data.
+    Clear,
 }
 
 #[cfg(test)]
@@ -130,7 +242,7 @@ mod tests {
         assert_eq!(cli.device.as_deref(), Some("emulator-5554"));
         assert_eq!(cli.variant.as_deref(), Some("devDebug"));
         assert_eq!(cli.module.as_deref(), Some(":app"));
-        assert!(matches!(cli.command, Some(Command::Info)));
+        assert!(matches!(cli.command, Some(Command::Info { .. })));
     }
 
     #[test]
@@ -138,7 +250,7 @@ mod tests {
         // `global = true` flags must also be accepted positioned after the subcommand.
         let cli = Cli::try_parse_from(["adev", "info", "--json"]).unwrap();
         assert!(cli.json);
-        assert!(matches!(cli.command, Some(Command::Info)));
+        assert!(matches!(cli.command, Some(Command::Info { .. })));
     }
 
     #[test]
@@ -208,5 +320,158 @@ mod tests {
     #[test]
     fn unknown_subcommand_is_rejected() {
         assert!(Cli::try_parse_from(["adev", "frobnicate"]).is_err());
+    }
+
+    #[test]
+    fn global_dry_run_flag_parses_before_and_after_subcommand() {
+        let before = Cli::try_parse_from(["adev", "--dry-run", "install"]).unwrap();
+        assert!(before.dry_run);
+
+        let after = Cli::try_parse_from(["adev", "install", "--dry-run"]).unwrap();
+        assert!(after.dry_run);
+    }
+
+    #[test]
+    fn info_refresh_flag_parses() {
+        let cli = Cli::try_parse_from(["adev", "info", "--refresh"]).unwrap();
+        assert!(matches!(cli.command, Some(Command::Info { refresh: true })));
+    }
+
+    #[test]
+    fn build_takes_optional_positional_variant() {
+        let cli = Cli::try_parse_from(["adev", "build", "prodRelease"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Build { variant: Some(v) }) if v == "prodRelease"
+        ));
+
+        let default = Cli::try_parse_from(["adev", "build"]).unwrap();
+        assert!(matches!(
+            default.command,
+            Some(Command::Build { variant: None })
+        ));
+    }
+
+    #[test]
+    fn connected_test_accepts_fresh_flag() {
+        let cli = Cli::try_parse_from(["adev", "connected-test", "--fresh"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::ConnectedTest { fresh: true })
+        ));
+    }
+
+    #[test]
+    fn run_accepts_inner_loop_flags() {
+        let cli = Cli::try_parse_from([
+            "adev",
+            "run",
+            "devDebug",
+            "--fresh",
+            "--clear-data",
+            "--restart",
+            "--logs",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Run {
+                variant: Some(v),
+                fresh: true,
+                clear_data: true,
+                restart: true,
+                logs: true,
+            }) if v == "devDebug"
+        ));
+    }
+
+    #[test]
+    fn logs_accepts_filter_flags() {
+        let cli = Cli::try_parse_from([
+            "adev",
+            "logs",
+            "--clear",
+            "--tag",
+            "AndroidRuntime",
+            "--tag",
+            "MyApp",
+            "--level",
+            "E",
+            "--crashes",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Logs {
+                clear: true,
+                tag,
+                level: Some(level),
+                crashes: true,
+            }) if tag == vec!["AndroidRuntime".to_string(), "MyApp".to_string()] && level == "E"
+        ));
+    }
+
+    #[test]
+    fn device_commands_parse() {
+        let devices = Cli::try_parse_from(["adev", "devices", "--verbose", "--health"]).unwrap();
+        assert!(matches!(
+            devices.command,
+            Some(Command::Devices {
+                verbose: true,
+                health: true
+            })
+        ));
+
+        let health = Cli::try_parse_from(["adev", "health"]).unwrap();
+        assert!(matches!(health.command, Some(Command::Health)));
+    }
+
+    #[test]
+    fn app_management_commands_parse() {
+        let open = Cli::try_parse_from(["adev", "open", "myapp://screen"]).unwrap();
+        assert!(matches!(
+            open.command,
+            Some(Command::Open { url }) if url == "myapp://screen"
+        ));
+
+        let uninstall = Cli::try_parse_from(["adev", "uninstall", "--yes"]).unwrap();
+        assert!(matches!(
+            uninstall.command,
+            Some(Command::Uninstall { yes: true })
+        ));
+
+        let grant = Cli::try_parse_from([
+            "adev",
+            "grant",
+            "android.permission.CAMERA",
+            "android.permission.POST_NOTIFICATIONS",
+        ])
+        .unwrap();
+        assert!(matches!(
+            grant.command,
+            Some(Command::Grant { permissions }) if permissions == vec![
+                "android.permission.CAMERA".to_string(),
+                "android.permission.POST_NOTIFICATIONS".to_string()
+            ]
+        ));
+
+        let revoke = Cli::try_parse_from(["adev", "revoke", "android.permission.CAMERA"]).unwrap();
+        assert!(matches!(
+            revoke.command,
+            Some(Command::Revoke { permissions }) if permissions == vec![
+                "android.permission.CAMERA".to_string()
+            ]
+        ));
+    }
+
+    #[test]
+    fn cache_clear_parses() {
+        let cli = Cli::try_parse_from(["adev", "cache", "clear"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Some(Command::Cache {
+                command: CacheCommand::Clear
+            })
+        ));
     }
 }

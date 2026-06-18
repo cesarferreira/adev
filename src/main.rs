@@ -43,6 +43,7 @@ fn run(cli: Cli) -> Result<()> {
         device: cli.device,
         variant: cli.variant,
         module: cli.module,
+        dry_run: cli.dry_run,
     };
     let command = match cli.command {
         Some(c) => c,
@@ -59,24 +60,48 @@ fn pick_command(ctx: &Ctx) -> Result<Command> {
     let options = vec![
         "info",
         "install",
+        "build",
         "launch",
+        "run",
         "test",
+        "connected-test",
         "logs",
         "clean",
         "deep-clean",
         "devices",
+        "health",
+        "doctor",
         "screenshot",
     ];
     let choice = Select::new("What do you want to do?", options).prompt()?;
     Ok(match choice {
-        "info" => Command::Info,
+        "info" => Command::Info { refresh: false },
         "install" => Command::Install { variant: None },
+        "build" => Command::Build { variant: None },
         "launch" => Command::Launch,
+        "run" => Command::Run {
+            variant: None,
+            fresh: false,
+            clear_data: false,
+            restart: false,
+            logs: false,
+        },
         "test" => Command::Test { fresh: false },
-        "logs" => Command::Logs,
+        "connected-test" => Command::ConnectedTest { fresh: false },
+        "logs" => Command::Logs {
+            clear: false,
+            tag: Vec::new(),
+            level: None,
+            crashes: false,
+        },
         "clean" => Command::Clean,
         "deep-clean" => Command::DeepClean { yes: false },
-        "devices" => Command::Devices,
+        "devices" => Command::Devices {
+            verbose: false,
+            health: false,
+        },
+        "health" => Command::Health,
+        "doctor" => Command::Doctor,
         "screenshot" => Command::Screenshot { output: None },
         _ => unreachable!("unknown menu option"),
     })
