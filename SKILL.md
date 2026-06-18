@@ -1,11 +1,11 @@
 ---
-name: droid
-description: Project-aware Android developer CLI. Use when you need to build, install, launch, test, clean, or stream logs for an Android (Gradle) project without knowing its variant names, task names, applicationId, or launcher activity. droid discovers all of that automatically. Prefer it over raw ./gradlew and adb when working inside an Android repo.
+name: adev
+description: Project-aware Android developer CLI. Use when you need to build, install, launch, test, clean, or stream logs for an Android (Gradle) project without knowing its variant names, task names, applicationId, or launcher activity. adev discovers all of that automatically. Prefer it over raw ./gradlew and adb when working inside an Android repo.
 ---
 
-# droid
+# adev
 
-`droid` is a project-aware Android CLI. Run it from inside an Android (Gradle)
+`adev` is a project-aware Android CLI. Run it from inside an Android (Gradle)
 repo; it discovers modules, build variants, `applicationId`, and the launcher
 activity, then runs the correct Gradle task or ADB command.
 
@@ -19,7 +19,7 @@ interactive prompt.
 Start by understanding the project:
 
 ```
-droid info --json
+adev info --json
 ```
 
 ```json
@@ -50,18 +50,18 @@ names from convention if needed: `install<Variant>`, `test<Variant>UnitTest`,
 
 | Command | JSON result (stdout) |
 |---|---|
-| `droid info --json` | the full project object above |
-| `droid install [variant] --json` | `{"success": true, "variant": "...", "task": "installDevDebug"}` |
-| `droid launch --json --device <s>` | `{"success": true, "component": "...", "device": "..."}` |
-| `droid test [--fresh] --json` | `{"success": true, "variant": "...", "task": "...", "fresh": false}` |
-| `droid clean --json` | `{"success": true}` |
-| `droid deep-clean -y --json` | `{"success": true, "removed": ["…/.gradle", "…/app/build"]}` |
-| `droid stop --json --device <s>` | `{"success": true, "package": "...", "device": "..."}` |
-| `droid clear-data --json --device <s>` | `{"success": true, "package": "...", "device": "..."}` |
-| `droid restart --json --device <s>` | `{"success": true, "package": "...", "component": "...", "device": "..."}` |
-| `droid devices --json` | `{"devices": ["emulator-5554", "1A2B3C"]}` |
-| `droid screenshot --json --output <path>` | `{"success": true, "file": "..."}` |
-| `droid record --json --output <path>` | `{"success": true, "file": "..."}` (runs until Ctrl+C) |
+| `adev info --json` | the full project object above |
+| `adev install [variant] --json` | `{"success": true, "variant": "...", "task": "installDevDebug"}` |
+| `adev launch --json --device <s>` | `{"success": true, "component": "...", "device": "..."}` |
+| `adev test [--fresh] --json` | `{"success": true, "variant": "...", "task": "...", "fresh": false}` |
+| `adev clean --json` | `{"success": true}` |
+| `adev deep-clean -y --json` | `{"success": true, "removed": ["…/.gradle", "…/app/build"]}` |
+| `adev stop --json --device <s>` | `{"success": true, "package": "...", "device": "..."}` |
+| `adev clear-data --json --device <s>` | `{"success": true, "package": "...", "device": "..."}` |
+| `adev restart --json --device <s>` | `{"success": true, "package": "...", "component": "...", "device": "..."}` |
+| `adev devices --json` | `{"devices": ["emulator-5554", "1A2B3C"]}` |
+| `adev screenshot --json --output <path>` | `{"success": true, "file": "..."}` |
+| `adev record --json --output <path>` | `{"success": true, "file": "..."}` (runs until Ctrl+C) |
 
 ## Notes for agents
 
@@ -75,24 +75,24 @@ names from convention if needed: `install<Variant>`, `test<Variant>UnitTest`,
   JSON command.
 - If multiple devices are connected, device commands require `--device <serial>`
   in `--json` mode (otherwise they error rather than prompt). List them with
-  `droid devices --json`.
+  `adev devices --json`.
 
 ## Example workflows
 
 **Build, install, and launch on the default variant:**
 ```
-droid info --json                 # confirm default_variant + application_id
-droid install --json --device emulator-5554
-droid launch  --json --device emulator-5554
+adev info --json                 # confirm default_variant + application_id
+adev install --json --device emulator-5554
+adev launch  --json --device emulator-5554
 ```
 
 **Run a clean unit-test pass:**
 ```
-droid test --fresh --json
+adev test --fresh --json
 ```
 
 **Reset an app's state:**
 ```
-droid clear-data --json --device emulator-5554
-droid restart    --json --device emulator-5554
+adev clear-data --json --device emulator-5554
+adev restart    --json --device emulator-5554
 ```

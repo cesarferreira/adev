@@ -13,7 +13,7 @@ from pathlib import Path
 
 VERSION_TAG_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 CONVENTIONAL_RE = re.compile(r"^(?P<type>[a-z]+)(\([^)]+\))?(?P<breaking>!)?: (?P<desc>.+)$")
-SKIP_SUBJECT_RE = re.compile(r"^chore: Release droid version \d+\.\d+\.\d+$")
+SKIP_SUBJECT_RE = re.compile(r"^chore: Release adev version \d+\.\d+\.\d+$")
 UNRELEASED_BLOCK_RE = re.compile(
     r"(?ms)^## \[Unreleased\] - ReleaseDate\s*\n.*?(?=^## \[|^<!-- next-url -->|\Z)"
 )

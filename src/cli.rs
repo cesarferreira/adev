@@ -1,4 +1,4 @@
-//! Command-line surface for `droid`. Mirrors `dab`'s agent ergonomics:
+//! Command-line surface for `adev`. Mirrors `dab`'s agent ergonomics:
 //! global `--json` / `--device`, plus `--variant` / `--module` for the
 //! project-aware commands.
 
@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "droid",
+    name = "adev",
     version,
     about = "Project-aware Android developer CLI — knows your repo's test, install, launch & clean commands"
 )]

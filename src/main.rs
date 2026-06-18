@@ -1,4 +1,4 @@
-//! `droid` — a project-aware Android developer CLI built on `androkit`.
+//! `adev` — a project-aware Android developer CLI built on `androkit`.
 //!
 //! Discovers your repo's modules, variants, applicationId, and launcher
 //! activity, then maps simple verbs (`info`, `install`, `launch`, `test`,
@@ -54,7 +54,7 @@ fn run(cli: Cli) -> Result<()> {
 /// No subcommand → a fuzzy action picker (TTY only).
 fn pick_command(ctx: &Ctx) -> Result<Command> {
     if ctx.json || !std::io::stdin().is_terminal() {
-        bail!("No command given. Run `droid --help` to see available commands.");
+        bail!("No command given. Run `adev --help` to see available commands.");
     }
     let options = vec![
         "info",

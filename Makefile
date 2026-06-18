@@ -49,8 +49,8 @@ run:
 
 # Quick demo
 demo: install
-	@echo "=== droid demo ==="
-	droid --help
+	@echo "=== adev demo ==="
+	adev --help
 
 # Bump version, finalize CHANGELOG.md, tag, publish, and push (requires cargo-release)
 release:

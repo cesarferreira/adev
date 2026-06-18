@@ -1,12 +1,12 @@
 <div align="center">
-  <h1>droid</h1>
+  <h1>adev</h1>
 
   <p><strong>Project-aware Android developer CLI — knows your repo's test, install, launch &amp; clean commands</strong></p>
 
   <p>
     <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
     <img alt="Rust" src="https://img.shields.io/badge/rust-1.74%2B-orange">
-    <a href="https://crates.io/crates/droid"><img alt="crates.io" src="https://img.shields.io/crates/v/droid.svg"></a>
+    <a href="https://crates.io/crates/adev"><img alt="crates.io" src="https://img.shields.io/crates/v/adev.svg"></a>
   </p>
 </div>
 
@@ -16,13 +16,13 @@ Walk into any Android repo and run simple verbs without remembering this
 project's variant names, Gradle task names, applicationId, or launcher activity:
 
 ```
-droid test           instead of   ./gradlew testDevDebugUnitTest
-droid install        instead of   ./gradlew installDevDebug
-droid launch         instead of   adb shell am start -n com.foo/.MainActivity
-droid deep-clean     instead of   ./gradlew --stop && rm -rf .gradle && find . -name build -delete
+adev test           instead of   ./gradlew testDevDebugUnitTest
+adev install        instead of   ./gradlew installDevDebug
+adev launch         instead of   adb shell am start -n com.foo/.MainActivity
+adev deep-clean     instead of   ./gradlew --stop && rm -rf .gradle && find . -name build -delete
 ```
 
-`droid` discovers your project structure automatically (modules, build variants,
+`adev` discovers your project structure automatically (modules, build variants,
 `applicationId`, launch activity) and runs the correct command.
 
 > Built on [`androkit`](https://github.com/cesarferreira/androkit), the shared
@@ -32,18 +32,18 @@ droid deep-clean     instead of   ./gradlew --stop && rm -rf .gradle && find . -
 
 | Command | What it does |
 |---|---|
-| `droid info` | Show modules, variants, applicationId, launch activity, and resolved tasks. |
-| `droid install [variant]` | `./gradlew install<Variant>` (defaults to the resolved variant). |
-| `droid launch` | Start the discovered launcher activity. |
-| `droid test [--fresh]` | `./gradlew test<Variant>UnitTest` (`--fresh` adds `--rerun-tasks --no-build-cache`). |
-| `droid logs` | Stream logcat filtered to this app. |
-| `droid clean` | `./gradlew clean`. |
-| `droid deep-clean [-y]` | Stop daemons, delete `.gradle` and every `build/` dir (keeps `~/.gradle`). Prompts unless `-y`. |
-| `droid stop` / `clear-data` / `restart` | App lifecycle on the device. |
-| `droid devices` | List connected devices. |
-| `droid screenshot` / `record` | Capture screen (thin ADB wrappers). |
+| `adev info` | Show modules, variants, applicationId, launch activity, and resolved tasks. |
+| `adev install [variant]` | `./gradlew install<Variant>` (defaults to the resolved variant). |
+| `adev launch` | Start the discovered launcher activity. |
+| `adev test [--fresh]` | `./gradlew test<Variant>UnitTest` (`--fresh` adds `--rerun-tasks --no-build-cache`). |
+| `adev logs` | Stream logcat filtered to this app. |
+| `adev clean` | `./gradlew clean`. |
+| `adev deep-clean [-y]` | Stop daemons, delete `.gradle` and every `build/` dir (keeps `~/.gradle`). Prompts unless `-y`. |
+| `adev stop` / `clear-data` / `restart` | App lifecycle on the device. |
+| `adev devices` | List connected devices. |
+| `adev screenshot` / `record` | Capture screen (thin ADB wrappers). |
 
-Run `droid` with no command for an interactive picker.
+Run `adev` with no command for an interactive picker.
 
 ## Smart defaults
 
@@ -64,15 +64,15 @@ interactive prompt. See [`SKILL.md`](SKILL.md), installable with
 Requires [Rust](https://rustup.rs) **1.74+** and `~/.cargo/bin` on your `PATH`.
 
 ```bash
-cargo install droid
+cargo install adev
 ```
 
 <details>
 <summary><strong>Build from source</strong> — for development or unreleased changes</summary>
 
 ```bash
-git clone https://github.com/cesarferreira/droid.git
-cd droid
+git clone https://github.com/cesarferreira/adev.git
+cd adev
 cargo install --path . --locked   # expects ../androkit alongside
 ```
 

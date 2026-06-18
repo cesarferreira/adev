@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Install the droid SKILL.md into common AI agent skill directories.
+# Install the adev SKILL.md into common AI agent skill directories.
 # Supports: Cursor (~/.cursor/skills/), Claude Code (~/.claude/skills/),
 #           Codex (~/.codex/skills/), and custom paths via --dest.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_SRC="$SCRIPT_DIR/../SKILL.md"
-SKILL_NAME="droid"
+SKILL_NAME="adev"
 
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Install the droid SKILL.md into AI agent skill directories.
+Install the adev SKILL.md into AI agent skill directories.
 
 Options:
   --dest <DIR>   Install into a custom directory instead of the defaults
