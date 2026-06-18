@@ -13,7 +13,7 @@ name = "adev"
 path = "src/main.rs"
 
 [dependencies]
-androkit = "0.2"
+androkit = "0.3"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
