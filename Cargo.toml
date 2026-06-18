@@ -1,0 +1,27 @@
+[package]
+name = "droid"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+description = "Project-aware Android developer CLI — knows your repo's test, install, launch & clean commands"
+license = "MIT"
+authors = ["Cesar Ferreira"]
+repository = "https://github.com/cesarferreira/droid"
+
+[[bin]]
+name = "droid"
+path = "src/main.rs"
+
+[dependencies]
+androkit = { path = "../androkit" }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+colored = "2"
+inquire = "0.6"
+serde_json = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"
